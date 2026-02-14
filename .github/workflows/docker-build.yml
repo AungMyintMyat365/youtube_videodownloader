@@ -23,10 +23,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set image tag
+        id: img
+        run: |
+          # compute lowercase owner/repo for GHCR (ghcr requires lowercase)
+          echo "image=ghcr.io/$(echo ${GITHUB_REPOSITORY} | tr '[:upper:]' '[:lower:]'):latest" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          # repository names must be lowercase; ensure owner/repo are lowercased
-          tags: ghcr.io/${{ toLower(github.repository) }}:latest
+          tags: ${{ steps.img.outputs.image }}

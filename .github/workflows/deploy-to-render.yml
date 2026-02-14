@@ -11,18 +11,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Compute image tag
+        id: img
+        run: |
+          echo "IMAGE_TAG=ghcr.io/$(echo ${GITHUB_REPOSITORY} | tr '[:upper:]' '[:lower:]'):latest" >> $GITHUB_ENV
+
       - name: Trigger Render deploy
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-          # ensure image tag uses lowercase owner/repo
-          IMAGE_TAG: ghcr.io/${{ toLower(github.repository) }}:latest
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
             echo "RENDER_API_KEY or RENDER_SERVICE_ID not set; skipping deploy";
             exit 0;
           fi
-          echo "Triggering deploy for service $RENDER_SERVICE_ID"
+          echo "Triggering deploy for service $RENDER_SERVICE_ID with image $IMAGE_TAG"
           curl -s -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
