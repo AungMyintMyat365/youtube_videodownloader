@@ -101,7 +101,43 @@ app.get('/api/formats', async (req, res) => {
 
 // Helper: use yt-dlp (external binary) to dump JSON and extract formats
 const { execFile } = require('child_process');
+// Try to use the npm-packaged yt-dlp binary via 'yt-dlp-exec' when available.
+let ytdlpExec;
+try {
+  ytdlpExec = require('yt-dlp-exec');
+} catch (e) {
+  ytdlpExec = null;
+}
+
 function getFormatsWithYtDlp(videoUrl) {
+  if (ytdlpExec) {
+    // use the promise interface to get JSON
+    return ytdlpExec(videoUrl, { dumpSingleJson: true, noWarnings: true }).then((out) => {
+      // output may already be an object
+      const info = typeof out === 'string' ? JSON.parse(out) : out;
+      const fmts = (info.formats || [])
+        .filter(f => f.ext && (f.acodec !== 'none' || f.vcodec !== 'none'))
+        .map(f => ({
+          itag: f.format_id || f.format || null,
+          container: f.ext || null,
+          qualityLabel: f.format_note || f.format || null,
+          bitrate: f.tbr || null,
+          audioBitrate: f.abr || null,
+          hasVideo: f.vcodec && f.vcodec !== 'none',
+          hasAudio: f.acodec && f.acodec !== 'none',
+          contentLength: f.filesize || f.filesize_approx || null
+        }))
+        .sort((a, b) => {
+          if ((a.hasVideo && a.hasAudio) && !(b.hasVideo && b.hasAudio)) return -1;
+          if ((b.hasVideo && b.hasAudio) && !(a.hasVideo && a.hasAudio)) return 1;
+          const qa = a.qualityLabel || '';
+          const qb = b.qualityLabel || '';
+          return qb.localeCompare(qa, undefined, { numeric: true });
+        });
+      return fmts;
+    });
+  }
+
   return new Promise((resolve, reject) => {
     const bin = process.env.YTDLP_BIN || 'yt-dlp';
     // -J outputs full JSON info
@@ -222,8 +258,10 @@ app.get('/api/download', async (req, res) => {
         try { res.end(); } catch (e) {}
         return;
       }
-      const bin = process.env.YTDLP_BIN || 'yt-dlp';
       const formatArg = req.query.itag ? [ '-f', req.query.itag ] : (type === 'audio' ? ['-f', 'bestaudio'] : ['-f', 'best'] );
+      let bin = process.env.YTDLP_BIN || 'yt-dlp';
+      // if yt-dlp-exec is installed, prefer its bundled binary path
+      if (ytdlpExec && ytdlpExec.bin) bin = ytdlpExec.bin;
       const args = ['-o', '-', '--no-warnings', '--no-playlist', ...formatArg, videoUrl];
       console.log('spawning yt-dlp', bin, args.join(' '));
       const child = execFile(bin, args, { maxBuffer: 0 }, (err) => {
