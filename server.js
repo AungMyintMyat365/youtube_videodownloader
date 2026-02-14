@@ -176,6 +176,28 @@ function getFormatsWithYtDlp(videoUrl) {
   });
 }
 
+function findYtDlpBinary() {
+  // prefer packaged binary
+  if (ytdlpExec && ytdlpExec.bin) return ytdlpExec.bin;
+  if (process.env.YTDLP_BIN) return process.env.YTDLP_BIN;
+  // try common paths
+  const possible = [
+    '/usr/bin/yt-dlp',
+    '/usr/local/bin/yt-dlp',
+    'C:\\Program Files\\yt-dlp\\yt-dlp.exe',
+    'C:\\Users\\%USERNAME%\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\yt-dlp.exe'
+  ];
+  for (const p of possible) {
+    try { if (fs.existsSync(p)) return p; } catch (e) {}
+  }
+  // last resort: which
+  try {
+    const which = require('child_process').spawnSync('which', ['yt-dlp']);
+    if (which.status === 0) return which.stdout.toString().trim();
+  } catch (e) {}
+  return null;
+}
+
 // Download endpoint: /api/download?url=...&type=video&requestId=...
 app.get('/api/download', async (req, res) => {
   const videoUrl = req.query.url;
@@ -259,9 +281,12 @@ app.get('/api/download', async (req, res) => {
         return;
       }
       const formatArg = req.query.itag ? [ '-f', req.query.itag ] : (type === 'audio' ? ['-f', 'bestaudio'] : ['-f', 'best'] );
-      let bin = process.env.YTDLP_BIN || 'yt-dlp';
-      // if yt-dlp-exec is installed, prefer its bundled binary path
-      if (ytdlpExec && ytdlpExec.bin) bin = ytdlpExec.bin;
+      let bin = findYtDlpBinary();
+      if (!bin) {
+        console.error('yt-dlp binary not found for fallback');
+        if (!res.headersSent) return res.status(500).json({ error: 'yt-dlp not available on server' });
+        return;
+      }
       const args = ['-o', '-', '--no-warnings', '--no-playlist', ...formatArg, videoUrl];
       console.log('spawning yt-dlp', bin, args.join(' '));
       const child = execFile(bin, args, { maxBuffer: 0 }, (err) => {
