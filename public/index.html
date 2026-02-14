@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>YouTube Video Downloader</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>YouTube Video Downloader</h1>
+      <p>Paste a YouTube link and choose download type.</p>
+
+      <div class="form">
+        <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+        <select id="type">
+          <option value="video">Video (MP4)</option>
+          <option value="audio">Audio (MP3)</option>
+        </select>
+        <button id="fetchFormats">Fetch formats</button>
+        <select id="formatSelect">
+          <option value="">Default</option>
+        </select>
+        <button id="download">Download</button>
+      </div>
+
+      <div id="status" class="status">Ready</div>
+    </main>
+
+    <script src="/main.js"></script>
+  </body>
+</html>
