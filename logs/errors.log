@@ -1,0 +1,22 @@
+[2026-02-14T16:44:24.121Z] formats error: Error: Video unavailable
+    at exports.playError (A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\utils.js:154:12)
+    at validate (A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\info.js:60:25)
+    at pipeline (A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\info.js:184:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async exports.getBasicInfo (A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\info.js:69:14)
+[2026-02-14T16:44:37.155Z] formats error: Error: Could not extract functions
+    at A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\sig.js:20:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-02-14T16:47:01.993Z] formats error: Error: Could not extract functions
+    at A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\sig.js:20:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-02-14T16:47:01.997Z] yt-dlp fallback error: Error: spawn yt-dlp ENOENT
+    at ChildProcess._handle.onexit (node:internal/child_process:285:19)
+    at onErrorNT (node:internal/child_process:483:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-02-14T16:48:03.859Z] formats error: Error: Could not extract functions
+    at A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\sig.js:20:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-02-14T16:51:57.386Z] formats error: Error: Could not extract functions
+    at A:\Coding\youtube-videodownloader\node_modules\ytdl-core\lib\sig.js:20:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
