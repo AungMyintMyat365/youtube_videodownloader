@@ -7,11 +7,11 @@ COPY package.json package-lock.json* ./
 RUN npm install --production
 
 # Install python3 and yt-dlp so the container has yt-dlp available as a binary
-RUN apk add --no-cache python3 py3-pip ca-certificates && \
-	python3 -m pip install --upgrade pip setuptools wheel && \
-	pip3 install --no-cache-dir yt-dlp && \
-	# ensure yt-dlp is on PATH
-	if [ -x "/usr/local/bin/yt-dlp" ]; then ln -sf /usr/local/bin/yt-dlp /usr/bin/yt-dlp || true; fi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip ca-certificates ffmpeg ca-certificates && \
+    python3 -m pip install --upgrade pip setuptools wheel && \
+    pip3 install --no-cache-dir yt-dlp && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy app source
 COPY . .
