@@ -3,6 +3,7 @@ const express = require('express');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const path = require('path');
+const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
@@ -73,8 +74,13 @@ app.get('/api/formats', async (req, res) => {
 
     res.json({ formats: fmts });
   } catch (err) {
-    console.error('formats error', err);
-    res.status(500).json({ error: 'Failed to get formats' });
+    console.error('formats error', err && err.stack ? err.stack : err);
+    try {
+      fs.appendFileSync(path.join(__dirname, 'logs', 'errors.log'), `[${new Date().toISOString()}] formats error: ${err && err.stack ? err.stack : err}\n`);
+    } catch (e) {
+      // ignore file write errors
+    }
+    res.status(500).json({ error: 'Failed to get formats', message: err && err.message });
   }
 });
 
