@@ -9,6 +9,13 @@ const helmet = require('helmet');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Default request options to avoid 403 from remote (YouTube may block non-browser UAs)
+const DEFAULT_REQUEST_OPTIONS = {
+  headers: {
+    'User-Agent': process.env.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
+  }
+};
+
 app.use(helmet());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -42,7 +49,7 @@ app.get('/api/formats', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing YouTube URL' });
   }
   try {
-    const info = await ytdl.getInfo(videoUrl);
+    const info = await ytdl.getInfo(videoUrl, { requestOptions: DEFAULT_REQUEST_OPTIONS });
     const fmts = info.formats
       .filter(f => f.container && (f.hasVideo || f.hasAudio))
       .map(f => ({
@@ -111,13 +118,13 @@ app.get('/api/download', async (req, res) => {
     if (req.query.itag) {
       const chosen = ytdl.chooseFormat(info.formats, { quality: req.query.itag });
       if (chosen && chosen.itag) {
-        stream = ytdl(videoUrl, { format: chosen });
+        stream = ytdl(videoUrl, { format: chosen, requestOptions: DEFAULT_REQUEST_OPTIONS });
       } else {
         // fallback
-        stream = ytdl(videoUrl, { quality: 'highest', filter });
+        stream = ytdl(videoUrl, { quality: 'highest', filter, requestOptions: DEFAULT_REQUEST_OPTIONS });
       }
     } else {
-      stream = ytdl(videoUrl, { quality: 'highest', filter });
+      stream = ytdl(videoUrl, { quality: 'highest', filter, requestOptions: DEFAULT_REQUEST_OPTIONS });
     }
 
     // Forward ytdl progress to SSE connection if available
@@ -150,8 +157,9 @@ app.get('/api/download', async (req, res) => {
 
     stream.pipe(res);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error fetching video info' });
+    console.error('Error fetching video info:', err && err.stack ? err.stack : err);
+    // Return more helpful error message to the client for debugging (non-sensitive)
+    res.status(500).json({ error: 'Server error fetching video info', message: err && err.message });
   }
 });
 
