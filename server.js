@@ -76,7 +76,9 @@ app.get('/api/formats', async (req, res) => {
   } catch (err) {
     console.error('formats error', err && err.stack ? err.stack : err);
     try {
-      fs.appendFileSync(path.join(__dirname, 'logs', 'errors.log'), `[${new Date().toISOString()}] formats error: ${err && err.stack ? err.stack : err}\n`);
+      const logDir = path.join(__dirname, 'logs');
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+      fs.appendFileSync(path.join(logDir, 'errors.log'), `[${new Date().toISOString()}] formats error: ${err && err.stack ? err.stack : err}\n`);
     } catch (e) {
       // ignore file write errors
     }
