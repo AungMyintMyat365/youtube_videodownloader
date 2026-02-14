@@ -301,8 +301,32 @@ app.get('/api/download', async (req, res) => {
     startYtdlStream();
   } catch (err) {
     console.error('Error fetching video info:', err && err.stack ? err.stack : err);
-    // Return more helpful error message to the client for debugging (non-sensitive)
-    res.status(500).json({ error: 'Server error fetching video info', message: err && err.message });
+    // If ytdl-core fails (e.g. 410 Gone), attempt to stream directly with yt-dlp as a fallback.
+    try {
+      const formatArg = type === 'audio' ? ['-f', 'bestaudio'] : ['-f', 'best'];
+      let bin = process.env.YTDLP_BIN || 'yt-dlp';
+      if (ytdlpExec && ytdlpExec.bin) bin = ytdlpExec.bin;
+      const args = ['-o', '-', '--no-warnings', '--no-playlist', ...formatArg, videoUrl];
+      console.log('ytdl.getInfo failed, falling back to yt-dlp stream', err && err.message);
+      const child = execFile(bin, args, { maxBuffer: 0 }, (e) => {
+        if (e) console.error('yt-dlp stream error', e && e.stack ? e.stack : e);
+      });
+
+      // set download headers
+      try {
+        const filename = sanitize((new URL(videoUrl).searchParams.get('v') || 'video') + (type === 'audio' ? '.mp3' : '.mp4'));
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+      } catch (e) {}
+
+      child.stdout.pipe(res);
+      child.stderr.on('data', (d) => console.error('yt-dlp stderr:', d.toString()));
+      req.on('close', () => { try { child.kill('SIGTERM'); } catch (e) {} });
+      return;
+    } catch (e2) {
+      console.error('yt-dlp fallback also failed', e2 && e2.stack ? e2.stack : e2);
+      return res.status(500).json({ error: 'Server error fetching video info', message: err && err.message });
+    }
   }
 });
 
