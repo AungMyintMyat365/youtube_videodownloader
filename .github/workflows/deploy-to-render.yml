@@ -15,7 +15,8 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-          IMAGE_TAG: ghcr.io/${{ github.repository_owner }}/youtube_videodownloader:latest
+          # ensure image tag uses lowercase owner/repo
+          IMAGE_TAG: ghcr.io/${{ toLower(github.repository) }}:latest
         run: |
           if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
             echo "RENDER_API_KEY or RENDER_SERVICE_ID not set; skipping deploy";
