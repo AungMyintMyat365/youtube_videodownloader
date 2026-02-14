@@ -4,6 +4,7 @@ const downloadBtn = document.getElementById('download');
 const statusDiv = document.getElementById('status');
 const fetchFormatsBtn = document.getElementById('fetchFormats');
 const formatSelect = document.getElementById('formatSelect');
+const autoSelect = document.getElementById('autoSelect');
 
 function setStatus(text, isError = false) {
   statusDiv.textContent = text;
@@ -78,13 +79,32 @@ async function fetchFormats() {
     if (!resp.ok) throw new Error('Failed to fetch formats');
     const json = await resp.json();
     const fmts = json.formats || [];
-    // Clear and populate
+    // Clear and populate with filters for selected type
+    const type = typeSelect.value;
     formatSelect.innerHTML = '';
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
     defaultOpt.textContent = 'Default (auto)';
     formatSelect.appendChild(defaultOpt);
-    fmts.forEach(f => {
+    // Filter formats by requested type: if audio requested, show audio-only + audio+video; if video requested, show video+audio first
+    let filtered = fmts.filter(f => {
+      if (type === 'audio') return f.hasAudio;
+      return f.hasVideo || f.hasAudio;
+    });
+    // Sort: prefer A+V, then by qualityLabel numeric desc, then audioBitrate
+    filtered.sort((a,b) => {
+      const aAV = a.hasAudio && a.hasVideo;
+      const bAV = b.hasAudio && b.hasVideo;
+      if (aAV && !bAV) return -1;
+      if (bAV && !aAV) return 1;
+      const qa = a.qualityLabel || '';
+      const qb = b.qualityLabel || '';
+      const cmp = qb.localeCompare(qa, undefined, { numeric: true });
+      if (cmp !== 0) return cmp;
+      return (b.audioBitrate || 0) - (a.audioBitrate || 0);
+    });
+
+    filtered.forEach(f => {
       const opt = document.createElement('option');
       opt.value = String(f.itag);
       const size = f.contentLength ? ` - ${(f.contentLength/1024/1024).toFixed(2)} MB` : '';
@@ -92,7 +112,14 @@ async function fetchFormats() {
       opt.textContent = `${f.itag} • ${q} • ${f.container}${f.hasVideo && f.hasAudio ? ' (A+V)' : f.hasAudio ? ' (A)' : ' (V)'}${size}`;
       formatSelect.appendChild(opt);
     });
-    setStatus(`Found ${fmts.length} formats`);
+
+    setStatus(`Found ${filtered.length} formats (showing filtered)`);
+
+    // If autoSelect checked, pick the best candidate (first in filtered)
+    if (autoSelect && autoSelect.checked && filtered.length) {
+      formatSelect.value = String(filtered[0].itag);
+      setStatus(`Auto-selected itag ${filtered[0].itag} (${filtered[0].qualityLabel || 'audio'})`);
+    }
   } catch (err) {
     console.error(err);
     setStatus('Failed to fetch formats', true);
